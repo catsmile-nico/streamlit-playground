@@ -1,70 +1,83 @@
 import glob
 import os
-import time
 
 import streamlit as st
+from streamlit_ace import st_ace
 
+st.set_page_config(layout="wide")
 
 def restart():
+    """
+    Delete all cache
+    """    
     for key in st.session_state.keys():
         del st.session_state[key]
 
 def main():
-    st.title("SQLPlayground")
+    with st.sidebar:
+        template_sel = st.selectbox('Select Template',map(os.path.basename,glob.glob("./SQL/*.sql")),on_change=restart)
+        if template_sel and "query" not in st.session_state:
+            fd = open(f'./SQL/{template_sel}', 'r')
+            st.session_state["query"] = fd.read()
+            fd.close()
 
-    option = st.selectbox('Select Template',map(os.path.basename,glob.glob("./SQL/*.sql")),on_change=restart)
-    if option and "template" not in st.session_state:
-        fd = open(f'./SQL/{option}', 'r')
-        st.session_state["template"] = fd.read()
-        fd.close()
+        st.markdown("---")
+
+    with st.expander("QUERY EDITOR",expanded=True):
+
+        st.write('<style> div.stRadio > div{flex-direction: row;}</style>', unsafe_allow_html=True)
+        editor_sel = st.radio("Mode", ("Simple", "Editor"), key="editor_radio_select")
+
+        #region SIMPLE MODE
+        if editor_sel == "Simple":
+            simple_col1, simple_col2 = st.columns(2)
+
+            with simple_col1:
+                with st.form("edit_query1",clear_on_submit = True):
+                    simple_input1 = st.text_input("AND",key="simple_input1")
+                    simple_form_submit = st.form_submit_button(label = 'ADD')	
+                    if simple_form_submit and simple_input1 != "":
+                        st.session_state["query"] += f"\n    AND {simple_input1}"
+            with simple_col2:
+                with st.form("edit_query2",clear_on_submit = True):
+                    simple_input2 = st.text_input("OR",key="simple_input2")
+                    simple_form_submit = st.form_submit_button(label = 'ADD')	
+                    if simple_form_submit and simple_input2 != "":
+                        st.session_state["query"] += f"\n    OR {simple_input2}"
+        #endregion
+
+        #region EDITOR MODE
+        if editor_sel == "Editor":
+            st.warning(":bulb: SAVE/APPLY changes after edit (CTRL+ENTER) :bulb:")
+            st.sidebar.title("Editor settings")
+            editor_content = st_ace(
+                value=st.session_state["query"],
+                placeholder="Write your code here",
+                language=st.sidebar.selectbox("Language", options=("sql","sqlserver","mysql")),
+                theme=st.sidebar.selectbox("Theme", options=("cobalt","sqlserver","terminal","xcode")),
+                keybinding="vscode",
+                font_size=16, tab_size=2,
+                show_gutter=True, show_print_margin=False,
+                wrap=False, min_lines=10,
+                auto_update=False, readonly=False,
+                key="ace",
+            )
+            if editor_content:
+                st.session_state["query"] = editor_content
+            #endregion
 
     st.markdown("---")
 
-    st.write('<style> div.stRadio > div{flex-direction: row;}</style>', unsafe_allow_html=True)
-    sel_edit = st.radio("Mode", ("Simple", "Editor"), key="editor_radio_select")
-
-    if sel_edit == "Simple":
-        if "query" not in st.session_state:
-            st.session_state["query"] = ""
-
-        query_area = st.empty()
-        query_area.code(st.session_state["template"].format(st.session_state["query"]))
-        col1, col2 = st.columns(2)
-
-        with col1:
-            with st.form("edit_query1",clear_on_submit = True):
-                txt1 = st.text_input("AND",key="txt1")
-                submit_button = st.form_submit_button(label = 'ADD')	
-                if submit_button and txt1 != "":
-                    st.session_state["query"] += f"\n    AND {txt1}"
-                    query_area.code(st.session_state["template"].format(st.session_state["query"]))
-        with col2:
-            with st.form("edit_query2",clear_on_submit = True):
-                txt2 = st.text_input("OR",key="txt2")
-                submit_button = st.form_submit_button(label = 'ADD')	
-                if submit_button and txt2 != "":
-                    st.session_state["query"] += f"\n    OR {txt2}"
-                    query_area.code(st.session_state["template"].format(st.session_state["query"]))
-
-    if sel_edit == "Editor":
-        st.session_state["template"] = st.session_state["template"].format(st.session_state["query"])
-        st.session_state["query"] = ""
-        st.text_area("",st.session_state["template"], key="editor_textarea1")
-        save_button = st.button("SAVE", key="editor_btn_save1")
-        if save_button:
-            st.session_state["template"] = st.session_state.editor_textarea1 + " {0}"
-            tv_success = st.empty()
-            tv_success.success("SAVED")
-            time.sleep(1)
-            tv_success.empty()
-        
-                
-    # if "query" in st.session_state:
-    #     st.write("QUERYSESS:",st.session_state["query"]) 
+    with st.expander("ACTUAL QUERY",expanded=True):
+        if "query" in st.session_state:
+            st.code(st.session_state["query"])
 
     st.markdown("---")
 
-    st.help(st.write)
+    execute_btn = st.button("QUERY")
+    if execute_btn: 
+        st.write("some DBAPI happened...")
 
 if __name__ == '__main__':
-	main()
+    main()
+    
