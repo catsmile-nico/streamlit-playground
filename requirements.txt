@@ -1,2 +1,8 @@
+# general
 streamlit
 streamlit-ace
+pandas
+
+# graphs
+matplotlib
+seaborn
