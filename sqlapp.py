@@ -3,7 +3,9 @@ import glob
 import os
 
 import streamlit as st
+import extra_streamlit_components as stx
 from streamlit_ace import st_ace
+
 
 st.set_page_config(layout="wide")
 
@@ -32,11 +34,13 @@ def main():
 
         st.markdown("---")
 
-    st.write('<style> div.stRadio > div{flex-direction: row;}</style>', unsafe_allow_html=True)
-    editor_sel = st.radio("Mode", ("Simple", "Editor"), key="editor_radio_select")
+    # st.write('<style> div.stRadio > div{flex-direction: row;}</style>', unsafe_allow_html=True)
+    # editor_sel = st.radio("Mode", ("Simple", "Editor"), key="editor_radio_select", horizontal=True)
+    tab_simple, tab_editor = st.tabs(["Simple", "Editor"])
 
     #region SIMPLE MODE
-    if editor_sel == "Simple":
+    # if editor_sel == "Simple":
+    with tab_simple:
         simple_col1, simple_col2 = st.columns(2)
         with simple_col2:
             st.session_state["container"] = st.container()
@@ -56,7 +60,8 @@ def main():
     #endregion
 
     #region EDITOR MODE
-    if editor_sel == "Editor":
+    # if editor_sel == "Editor":
+    with tab_editor:
         st.warning(":bulb: SAVE/APPLY changes after edit (CTRL+ENTER) :bulb:")
         st.sidebar.title("Editor settings")
         editor_content = st_ace(
@@ -74,7 +79,7 @@ def main():
         if editor_content:
             st.session_state["query"] = editor_content
         #endregion
-    
+
     
 def create_daterange(key,id):
     st.session_state["final_data"][key] = st.session_state["container"].date_input("Date Range", key="param"+str(id))
